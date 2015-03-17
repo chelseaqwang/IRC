@@ -1,0 +1,203 @@
+client/ChatClient.java
+16d15
+< 		t.setDaemon(true);
+20,21c19
+< 		System.out.println("You are connecting to server ...");
+< 		System.out.print("Please enter your username: ");
+---
+> 		System.out.print("Enter your name: ");
+23a22
+> 		outstream.println( "NICK" + " " + name);
+25c24
+< 		while (!socket.isClosed()) {
+---
+> 		while (socket.isConnected()) {
+30a30,32
+> 			if (line.startsWith("QUIT")) {
+> 				break;
+> 			}
+
+client/InputFromServer.java
+20c20
+< 				System.out.println("Disconnected.");
+---
+> 				System.out.println("Server disconnected.");
+
+client/InputFromServer.java  -- file added later
+
+server/ChatServer.java
+7c7
+< 
+---
+>  
+10,30c10,25
+< 	final static int PORT = 6667;
+< 	public static HashMap<String, User> userMap = new HashMap<String, User>();
+< 	public static HashMap<String, Channel> channelMap = new HashMap<String, Channel>();
+< 	public static String server = "localhost";
+< 
+< 	public static void main(String[] args) throws IOException {
+< 
+< 		ServerSocket welcomeSocket = new ServerSocket(PORT);
+< 		
+< 		Thread t = new Administrator(System.in);
+< 		t.setDaemon(true);
+< 		t.start();
+< 
+< 		while (true) {          
+< 			Socket connectionSocket = welcomeSocket.accept(); 
+< 			Service service = new Service(connectionSocket);
+< 			Thread thread = new Thread(service);
+< 			thread.start(); 
+< 		}
+< 	}
+< }
+>    final static int PORT = 6667;
+>    public static HashMap<String, User> userMap = new HashMap<String, User>();
+>    public static HashMap<String, Channel> channelMap = new HashMap<String, Channel>();
+>     
+>    public static void main(String[] args) throws IOException {
+>  
+>        ServerSocket welcomeSocket = new ServerSocket(PORT);
+>  
+>        while (true) {          
+>            Socket connectionSocket = welcomeSocket.accept(); 
+>            Service service = new Service(connectionSocket);
+>            Thread thread = new Thread(service);
+>            thread.start();            
+>        }
+>    }
+> }
+
+
+server/ChatServer.java
+27c27
+< 			user.println(u.username() + ":" + message);
+---
+> 			user.println(message);
+41,44c41,42
+< 		if (contains(user)) {
+< 			members.remove(user);
+< 			systemMSG(user.username() + " has left " + name);
+< 		}
+---
+> 		members.remove(user);
+> 		systemMSG(user.username() + " has left " + name);
+
+
+server/User.java
+12c12
+< 	private static String server = ChatServer.server;
+---
+> 	private static String server = "localhost";
+44,48d43
+< 	public void close() throws IOException {
+< 		socket.close();
+< 		return;
+< 	}
+
+
+server/Service.java
+5d4
+< import java.util.ArrayList;
+24c23
+< 				while (!socket.isClosed()) {
+---
+> 				while (true) {
+27,30d25
+< 					if (!command.startsWith("USER") && user.username() == null) {
+< 						user.println("ERROR:NULL_USERNAME - Please set your username");
+< 						continue;
+< 					}
+33a29
+> 						Command.valueOf("QUIT").execute(user, command);
+55d50
+< 				Command.valueOf("QUIT").execute(user, "");
+57a53
+> 				Command.valueOf("QUIT").execute(user, "");
+66c62
+< 	public enum Command {
+---
+> 	private enum Command {
+82,85d77
+< 				if (userMap.keySet().contains(args[1])) {
+< 					user.println("ERROR:USERNAME_OCCUPIED");
+< 					return;
+< 				}
+132d123
+< 						user.println("New channle created " + name);
+135a127
+> 						user.println("New channle created " + name);
+193c185,186
+< 				if (args.length == 1) {
+---
+> 				String channelName = args[1];
+> 				if (channelName == null) {
+198,199c191,192
+< 				} else if (!args[1].startsWith("#")) {
+< 					user.println("ERROR:BAD_CHANNEL_MASK:channel name should start with # " + args[1]);
+---
+> 				} else if (!channelName.startsWith("#")) {
+> 					user.println("ERROR:BAD_CHANNEL_MASK:channel name should start with # " + channelName);
+201,209c194,201
+< 				} else {			
+< 					Channel channel = channelMap.get(args[1]);
+< 					if (channel == null) {
+< 						user.println("ERROR:NO_SUCH_CHANNEL");
+< 					}
+< 					else {
+< 						for(User u : channel.members()) {
+< 							user.println(u.username() + "\t" + u.nickname());
+< 						}
+---
+> 				}
+> 				Channel channel = channelMap.get(channelName);
+> 				if (channel == null) {
+> 					user.println("ERROR:NO_SUCH_CHANNEL");
+> 				}
+> 				else {
+> 					for(User u : channel.members()) {
+> 						user.println(u.username() + "\t" + u.nickname());
+228,239c220,225
+< 				if (args[1].startsWith("#")) { // send a message to a channel or channels
+< 					String[] channelNames = args[1].split(",");
+< 					for (String channelName : channelNames) {
+< 						Channel channel = channelMap.get(channelName);
+< 						if (!channel.contains(user)) {
+< 							user.println("ERROR:NOT_ON_CHANNEL");
+< 							return;
+< 						}
+< 						channel.channelMSG(user, "PRIVMSG" + " " + channelName + " :" + command.split(":")[1]);
+< 						user.println("Message sent to channel " + channelName);
+< 					}
+< 				} else if (args[1].startsWith("$localhost")) { // send a message to a server					
+---
+> 				if (args[1].startsWith("#")) { // send a message to a channel
+> 					String channelName = args[1];
+> 					Channel channel = channelMap.get(channelName);
+> 					channel.channelMSG(user, command);
+> 					user.println("Message sent to channel " + channelName);
+> 				} else if (args[1].startsWith("$localhost")) { // send a message to a server
+243c229
+< 							u.println(user.username() + ":" + command);
+---
+> 							u.println(command);
+248,253c234,239
+< 					if (userMap.keySet().contains(args[1])) {
+< 						User u = userMap.get(args[1]);
+< 						u.println(user.username() + "***private***" + command);
+< 						user.println("Message sent to " + u.username());
+< 					} else {
+< 						user.println("ERROR:NO_SUCH_USER");
+---
+> 					for (String userName : userMap.keySet()) {
+> 						User u = userMap.get(userName);
+> 						if (u.username() == args[1]) {
+> 							u.println(command);
+> 							user.println("Message sent to " + u.username());
+> 						}
+262c248
+< 				for (String channelName : new ArrayList<String>(channelMap.keySet())) {
+---
+> 				for (String channelName : channelMap.keySet()) {
+

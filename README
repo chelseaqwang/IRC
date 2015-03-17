@@ -1,0 +1,10 @@
+This is a project for CS594 Internetworking Protocols
+
+Internet Relay Chat
+
+Steps:
+1. run ChatServer
+2. run ChatClient
+3. run another ChatClient with different username
+
+
